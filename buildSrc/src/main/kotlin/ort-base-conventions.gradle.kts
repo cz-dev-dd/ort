@@ -17,6 +17,23 @@
  * License-Filename: LICENSE
  */
 
+import org.gradlex.jvm.dependency.conflict.detection.rules.CapabilityDefinition
+
+plugins {
+    // Apply third-party plugins.
+    id("org.gradlex.jvm-dependency-conflict-resolution")
+}
+
+jvmDependencyConflicts {
+    logging {
+        enforceLogback()
+    }
+
+    conflictResolution {
+        select(CapabilityDefinition.JAVAX_INJECT_API, "org.glassfish.hk2.external:jakarta.inject")
+    }
+}
+
 repositories {
     mavenCentral()
 

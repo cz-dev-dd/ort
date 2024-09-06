@@ -152,13 +152,24 @@ class VulnerableCode(override val descriptor: PluginDescriptor, config: Vulnerab
     ): List<VulnerabilityReference> =
         runCatching {
             val sourceUri = URI(url.fixupUrlEscaping())
-            if (scores.isEmpty()) return listOf(VulnerabilityReference(sourceUri, null, null))
-            return scores.map {
-                // VulnerableCode returns MODERATE instead of MEDIUM in case of cvssv3.1_qr, see:
-                // https://github.com/aboutcode-org/vulnerablecode/issues/1186
-                val severity = if (it.scoringSystem == "cvssv3.1_qr" && it.value == "MODERATE") "MEDIUM" else it.value
 
-                VulnerabilityReference(sourceUri, it.scoringSystem, severity)
+            if (scores.isEmpty()) return listOf(VulnerabilityReference(sourceUri, null, null, null, null))
+
+            return scores.map { (scoringSystem, scoringElements, value) ->
+                val (severity, score) = value.toFloatOrNull()?.let { score ->
+                    val severity = VulnerabilityReference.getSeverityRating(scoringSystem, score)
+                    severity to score
+                } ?: run {
+                    // VulnerableCode returns "MODERATE" instead of "MEDIUM" in case of the "cvssv3.1_qr" scoring
+                    // system, see https://github.com/aboutcode-org/vulnerablecode/issues/1186.
+                    val severity = value.takeUnless { it == "MODERATE" && scoringSystem == "cvssv3.1_qr" }
+                        ?: "MEDIUM"
+
+                    // The more precise score cannot be reconstructed from the coarse severity, so use null here.
+                    severity to null
+                }
+
+                VulnerabilityReference(sourceUri, scoringSystem, severity, score, scoringElements?.ifEmpty { null })
             }
         }.onFailure {
             issues += createAndLogIssue(

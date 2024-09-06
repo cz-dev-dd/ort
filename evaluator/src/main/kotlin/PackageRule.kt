@@ -83,21 +83,21 @@ open class PackageRule(
 
     /**
      * A [RuleMatcher] that checks whether any vulnerability for the [package][pkg] has a
-     * [reference][Vulnerability.references] with a [severity][VulnerabilityReference.severity] that equals or is
-     * greater than [threshold] according to the [scoringSystem] and the belonging [severityComparator].
+     * [reference][Vulnerability.references] with a [score][VulnerabilityReference.score] that equals or is
+     * greater than [threshold] according to the [scoringSystem].
      */
-    fun hasVulnerability(threshold: String, scoringSystem: String, severityComparator: (String, String) -> Boolean) =
+    fun hasVulnerability(threshold: Float, scoringSystem: String) =
         object : RuleMatcher {
             override val description = "hasVulnerability($threshold, $scoringSystem)"
 
             override fun matches(): Boolean {
                 val run = ruleSet.ortResult.advisor ?: return false
                 return run.getVulnerabilities(pkg.metadata.id).asSequence()
-                    .filter { vulnerability -> !ruleSet.resolutionProvider.isResolved(vulnerability) }
+                    .filter { !ruleSet.resolutionProvider.isResolved(it) }
                     .flatMap { it.references }
-                    .filter { reference -> reference.scoringSystem == scoringSystem }
-                    .mapNotNull { reference -> reference.severity }
-                    .any { severityComparator(it, threshold) }
+                    .filter { it.scoringSystem == scoringSystem }
+                    .mapNotNull { it.score }
+                    .any { it >= threshold }
             }
         }
 

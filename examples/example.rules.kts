@@ -214,20 +214,18 @@ fun RuleSet.vulnerabilityInPackageRule() = packageRule("VULNERABILITY_IN_PACKAGE
 }
 
 fun RuleSet.highSeverityVulnerabilityInPackageRule() = packageRule("HIGH_SEVERITY_VULNERABILITY_IN_PACKAGE") {
-    val maxAcceptedSeverity = "5.0"
+    val thresholdScore = 5.0f
     val scoringSystem = "CVSS2"
 
     require {
         -isExcluded()
-        +hasVulnerability(maxAcceptedSeverity, scoringSystem) { value, threshold ->
-            value.toFloat() >= threshold.toFloat()
-        }
+        +hasVulnerability(thresholdScore, scoringSystem)
     }
 
     issue(
         Severity.ERROR,
         "The package ${pkg.metadata.id.toCoordinates()} has a vulnerability with $scoringSystem severity > " +
-                maxAcceptedSeverity,
+                thresholdScore,
         howToFixDefault()
     )
 }
